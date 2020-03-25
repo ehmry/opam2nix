@@ -27,5 +27,12 @@
 
       defaultApp = forAllSystems (system: self.apps.${system}.opam2nix);
 
+      checks = forAllSystems (system: {
+        builder = import ./test.nix {
+          pkgs = nixpkgs.legacyPackages.${system};
+          opam2nix = self.defaultPackage.${system};
+        };
+      });
+
     };
 }
