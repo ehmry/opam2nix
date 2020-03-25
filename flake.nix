@@ -5,19 +5,27 @@
 
   outputs = { self, nixpkgs }:
     let
-      pkg = nixpkgs.legacyPackages.x86_64-linux.callPackage ./nix {
-        self = self.outPath;
-      };
+      systems = [ "x86_64-linux" ];
+      forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f system);
     in {
-      packages.x86_64-linux.opam2nix = pkg;
 
-      defaultPackage.x86_64-linux = pkg;
+      packages = forAllSystems (system: {
+        opam2nix = nixpkgs.legacyPackages.${system}.callPackage ./nix {
+          self = self.outPath;
+        };
+      });
 
-      apps.x86_64-linux.opam2nix = {
-        type = "app";
-        program = "${pkg}/bin/opam2nix";
-      } // pkg.passthru;
+      defaultPackage = forAllSystems (system: self.packages.${system}.opam2nix);
 
-      defaultApp.x86_64-linux = self.apps.x86_64-linux.opam2nix;
+      apps = forAllSystems (system: {
+        opam2nix = let pkg = self.packages.${system}.opam2nix;
+        in {
+          type = "app";
+          program = "${pkg}/bin/opam2nix";
+        } // pkg.passthru;
+      });
+
+      defaultApp = forAllSystems (system: self.apps.${system}.opam2nix);
+
     };
 }
